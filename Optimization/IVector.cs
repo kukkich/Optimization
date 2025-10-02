@@ -2,4 +2,4 @@
 
 public interface IVector : IList<double>;
 
-public class Vector : List<double>, IVector;
+public class Vector(int dimension) : List<double>(dimension), IVector;

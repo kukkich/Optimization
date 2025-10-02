@@ -23,7 +23,7 @@ public class MyFunctional : IFunctional
     public double Value(IFunction function)
     {
         return Points
-            .Select(point => new { point, param = new Vector { point.x } })
+            .Select(point => new { point, param = new Vector(1) { point.x } })
             .Select(t => function.Value(t.param) - t.point.y)
             .Select(s => s * s)
             .Sum();
@@ -37,8 +37,8 @@ class MinimizerMonteCarlo : IOptimizator
     public IVector Minimize(IFunctional objective, IParametricFunction function, IVector initialParameters,
         IVector minimumParameters = null, IVector maximumParameters = null)
     {
-        var param = new Vector();
-        var minparam = new Vector();
+        var param = new Vector(0);
+        var minparam = new Vector(0);
         param.AddRange(initialParameters);
         minparam.AddRange(initialParameters);
         var fun = function.Bind(param);
@@ -65,7 +65,7 @@ class Example
     static void Run()
     {
         var optimizer = new MinimizerMonteCarlo();
-        var initial = new Vector
+        var initial = new Vector(2)
         {
             1,
             1
