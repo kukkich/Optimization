@@ -1,6 +1,6 @@
 ﻿namespace Optimization.Functions;
 
-public interface IDifferentiableFunction
+public interface IDifferentiableFunction : IFunction
 {
     IVector Gradient(IVector point);
 }
