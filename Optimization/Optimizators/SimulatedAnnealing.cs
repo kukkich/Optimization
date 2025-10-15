@@ -1,7 +1,5 @@
 ﻿using Optimization.Functionals;
 using Optimization.Functions;
-using System;
-using System.Drawing;
 
 namespace Optimization.Optimizators;
 
@@ -11,7 +9,7 @@ public class SimulatedAnnealing : IOptimizator
     private double _initialTemperature;
     private double _minTemperature;
 
-    public SimulatedAnnealing() : this(1, 0.01) 
+    public SimulatedAnnealing() : this(1, 0.01)
     {
     }
 
