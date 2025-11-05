@@ -9,11 +9,7 @@ public class SimulatedAnnealing : IOptimizator
     private double _initialTemperature;
     private double _minTemperature;
 
-    public SimulatedAnnealing() : this(1, 0.01)
-    {
-    }
-
-    public SimulatedAnnealing(double initialTemperature, double minTemperature)
+    public SimulatedAnnealing(double initialTemperature = 1, double minTemperature = 0.01)
     {
         _random = new Random();
         _initialTemperature = initialTemperature;

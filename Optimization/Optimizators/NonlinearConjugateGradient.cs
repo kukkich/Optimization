@@ -4,15 +4,17 @@ using Optimization.Optimizators.OneDimensionSearch;
 
 namespace Optimization.Optimizators;
 
-public class NonlinearConjugateGradientMethod : IOptimizator
+public class NonlinearConjugateGradient : IOptimizator
 {
-    private readonly IOneDimensionSearchMethod _oneDimensionSearchMethod;
+    private readonly IOneDimensionSearch _oneDimensionSearch;
     private readonly double _precision;
+    private readonly double _maxIterations;
 
-    public NonlinearConjugateGradientMethod(IOneDimensionSearchMethod oneDimensionSearchMethod, double precision = 1e-3)
+    public NonlinearConjugateGradient(IOneDimensionSearch oneDimensionSearch, double precision = 1e-3, int maxIterations = 1000)
     {
-        _oneDimensionSearchMethod = oneDimensionSearchMethod;
+        _oneDimensionSearch = oneDimensionSearch;
         _precision = precision;
+        _maxIterations = maxIterations;
     }
 
     public IVector Minimize(IFunctional objective, IParametricFunction function, IVector initialParameters,
@@ -24,9 +26,9 @@ public class NonlinearConjugateGradientMethod : IOptimizator
             var currentGradient = differentiableObjective.Gradient(function.Bind(initialParameters));
             var currentDirection = currentGradient.Clone().Negate();
 
-            do
+            for (var i = 0; i < _maxIterations && currentDirection.Norm() < _precision; i++)
             {
-                var lambda = _oneDimensionSearchMethod.SearchMin(l => differentiableObjective.Value(function.Bind(currentParameters.Subtract(currentDirection.Multiply(l)))));
+                var lambda = _oneDimensionSearch.SearchMin(l => differentiableObjective.Value(function.Bind(currentParameters.Subtract(currentDirection.Multiply(l)))));
 
                 var nextParameters = currentParameters.Sum(currentDirection.Multiply(lambda));
                 var nextGradient = differentiableObjective.Gradient(function.Bind(nextParameters));
@@ -38,7 +40,7 @@ public class NonlinearConjugateGradientMethod : IOptimizator
                 currentParameters = nextParameters;
                 currentGradient = nextDirection;
                 currentDirection = nextDirection;
-            } while (currentDirection.Norm() < _precision);
+            }
 
             return currentParameters;
         }

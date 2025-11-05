@@ -9,11 +9,7 @@ public class MinimumIntervalFinder : IMinimumIntervalFinder
 {
     private readonly double _minimumIntervalDelta;
 
-    public MinimumIntervalFinder() : this(1e-6)
-    {
-    }
-
-    public MinimumIntervalFinder(double minimumIntervalDelta)
+    public MinimumIntervalFinder(double minimumIntervalDelta = 1e-6)
     {
         _minimumIntervalDelta = minimumIntervalDelta;
     }

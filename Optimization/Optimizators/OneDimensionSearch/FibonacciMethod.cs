@@ -1,10 +1,10 @@
 ﻿namespace Optimization.Optimizators.OneDimensionSearch;
 
-public class FibonacciMethod : IOneDimensionSearchMethod
+public class FibonacciMethod : IOneDimensionSearch
 {
-    private readonly IMinimumIntervalFinder _minimumIntervalFinder;
+    private readonly MinimumIntervalFinder _minimumIntervalFinder;
 
-    public FibonacciMethod(IMinimumIntervalFinder minimumIntervalFinder)
+    public FibonacciMethod(MinimumIntervalFinder minimumIntervalFinder)
     {
         _minimumIntervalFinder = minimumIntervalFinder;
     }
