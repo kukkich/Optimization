@@ -11,21 +11,21 @@ public sealed class PiecewiseLinearFunctionFactory : IParametricFunction
             throw new ArgumentException("Expected even nums of parameters >= 4: (x0,y0,x1,y1,...)");
         }
         
-        var n = parameters.Count / 2;
-        var x = new Vector(n);
-        var y = new Vector(n);
+        var knotCount = parameters.Count / 2;
+        var knots = new Vector(knotCount);
+        var values = new Vector(knotCount);
 
-        for (var i = 0; i < n; i++)
+        for (var i = 0; i < knotCount; i++)
         {
-            x.Add(parameters[2 * i]);
-            y.Add(parameters[2 * i + 1]);
+            knots.Add(parameters[2 * i]);
+            values.Add(parameters[2 * i + 1]);
 
-            if (i > 0 && !(x[i] > x[i - 1]))
+            if (i > 0 && !(knots[i] > knots[i - 1]))
             {
                 throw new ArgumentException("The abscissas must strictly increase: x0 < x1 < ... < xN-1");
             }
         }
 
-        return new PiecewiseLinearFunction(x, y);
+        return new PiecewiseLinearFunction(knots, values);
     }
 }

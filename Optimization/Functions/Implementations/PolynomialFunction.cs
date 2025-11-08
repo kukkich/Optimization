@@ -9,13 +9,13 @@ public class PolynomialFunction(IVector parameters) : IFunction
             throw new ArgumentException("Polynomial expects 1D point (x).");
         }
         
-        var x = point[0];
-        var res = parameters[0];
+        var xValue = point[0];
+        var result = parameters[0];
         for (var i = 1; i < parameters.Count; i++)
         {
-            res = res * x + parameters[i];
+            result = result * xValue + parameters[i];
         }
 
-        return res;
+        return result;
     }
 }

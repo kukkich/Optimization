@@ -1,164 +1,191 @@
+using Optimization.Extensions;
+using Optimization.Functions.Utils;
+
 namespace Optimization.Functions.Implementations;
 
-public class NaturalCubicSpline : IFunction
+public class NaturalCubicSpline : IDifferentiableFunction
 {
-    private readonly Vector _x; // узлы x, размер n
-    private readonly Vector _a; // коэффициенты на интервалах, размер n-1
-    private readonly Vector _b;
-    private readonly Vector _c;
-    private readonly Vector _d;
-    private readonly int _n; // число узлов
+    private readonly IVector _knots;
+    private readonly Vector _constCoefficients;
+    private readonly Vector _linearCoefficients;
+    private readonly Vector _quadraticCoefficients;
+    private readonly Vector _cubicCoefficients;
+    private readonly int _knotCount;
 
-    public NaturalCubicSpline(IVector x, IVector y)
+    public NaturalCubicSpline(IVector knots, IVector values)
     {
-        if (x.Count != y.Count) throw new ArgumentException("x и y должны иметь одинаковую длину.");
-        if (x.Count < 2) throw new ArgumentException("Нужно минимум 2 узла.");
+        _knotCount = knots.Count;
+        _knots = knots;
 
-        _n = x.Count;
-        _x = new Vector(_n);
-        for (int i = 0; i < _n; i++)
-        {
-            if (double.IsNaN(x[i]) || double.IsInfinity(x[i]) ||
-                double.IsNaN(y[i]) || double.IsInfinity(y[i]))
-                throw new ArgumentException("Узлы содержат NaN или Infinity.");
+        _constCoefficients = new Vector(_knotCount - 1);
+        _linearCoefficients = new Vector(_knotCount - 1);
+        _quadraticCoefficients = new Vector(_knotCount - 1);
+        _cubicCoefficients = new Vector(_knotCount - 1);
 
-            if (i > 0 && !(x[i] > x[i - 1]))
-                throw new ArgumentException("x должны быть строго возрастающими.");
-
-            _x.Add(x[i]);
-        }
-
-        _a = new Vector(_n - 1);
-        _b = new Vector(_n - 1);
-        _c = new Vector(_n - 1);
-        _d = new Vector(_n - 1);
-
-        BuildCoefficients(x, y);
+        BuildCoefficients(knots, values);
     }
 
     public double Value(IVector point)
     {
-        if (point == null) throw new ArgumentNullException(nameof(point));
-        if (point.Count != 1) throw new ArgumentException("Точка должна быть одномерной (size=1).", nameof(point));
-
-        double xv = point[0];
-        if (xv < _x[0] || xv > _x[_n - 1])
-            throw new ArgumentOutOfRangeException(nameof(point), "Точка вне области определения сплайна.");
-
-        int i = FindInterval(xv);
-        double dx = xv - _x[i];
-        return _a[i] + _b[i] * dx + _c[i] * dx * dx + _d[i] * dx * dx * dx;
-    }
-
-    private void BuildCoefficients(IVector x, IVector y)
-    {
-        int n = x.Count;
-        int m = n - 1;
-
-        var h = new Vector(m);
-        for (int i = 0; i < m; i++)
+        if (point.Count != 1)
         {
-            double hi = x[i + 1] - x[i];
-            if (!(hi > 0.0)) throw new ArgumentException("x должны быть строго возрастающими.");
-            h.Add(hi);
+            throw new ArgumentException("Point must be one-dimensional", nameof(point));
         }
 
-        // Вторые производные в узлах
-        var M = new Vector(n);
-        for (int i = 0; i < n; i++) M.Add(0.0);
-
-        int interior = n - 2;
-        if (interior > 0)
+        var xValue = point[0];
+        if (xValue < _knots[0] || xValue > _knots[_knotCount - 1])
         {
-            var A = new Vector(interior);
-            var B = new Vector(interior);
-            var C = new Vector(interior);
-            var D = new Vector(interior);
+            throw new ArgumentOutOfRangeException(nameof(point), "Point is out of domain of definition [x0, xN]");
+        }
 
-            for (int i = 0; i < interior; i++)
+        var intervalIndex = SegmentIndexFinder.Find(_knots, xValue);
+        var localX = xValue - _knots[intervalIndex];
+
+        return _constCoefficients[intervalIndex]
+               + _linearCoefficients[intervalIndex] * localX
+               + _quadraticCoefficients[intervalIndex] * localX * localX
+               + _cubicCoefficients[intervalIndex] * localX * localX * localX;
+    }
+
+    public IVector Gradient(IVector point)
+    {
+        if (point.Count != 1)
+        {
+            throw new ArgumentException("Point must be one-dimensional", nameof(point));
+        }
+        
+        var xValue = point[0];
+        if (xValue < _knots[0] || xValue > _knots[_knotCount - 1])
+        {
+            throw new ArgumentOutOfRangeException(nameof(point), "Gradient is not defined out of domain of definition [x0, xN]");
+        }
+
+        var intervalIndex = SegmentIndexFinder.Find(_knots, xValue);
+        var localX = xValue - _knots[intervalIndex];
+
+        var derivative = _linearCoefficients[intervalIndex]
+                         + 2.0 * _quadraticCoefficients[intervalIndex] * localX
+                         + 3.0 * _cubicCoefficients[intervalIndex] * localX * localX;
+        
+        var gradient = new Vector(1);
+        gradient.Add(derivative);
+        return gradient;
+
+    }
+
+    private void BuildCoefficients(IVector knots, IVector values)
+    {
+        var segmentCount = _knotCount - 1;
+
+        var segmentLengths = new Vector(segmentCount);
+        for (var i = 0; i < segmentCount; i++)
+        {
+            var segmentLength = knots[i + 1] - knots[i];
+            segmentLengths.Add(segmentLength);
+        }
+
+        var secondDerivativesAtKnots = new Vector(_knotCount);
+        for (var i = 0; i < _knotCount; i++)
+        {
+            secondDerivativesAtKnots.Add(0.0);
+        }
+
+        var interiorKnotCount = _knotCount - 2;
+        if (interiorKnotCount > 0)
+        {
+            var lowerDiag = new Vector(interiorKnotCount);
+            var mainDiag = new Vector(interiorKnotCount);
+            var upperDiag = new Vector(interiorKnotCount);
+            var rhs = new Vector(interiorKnotCount);
+
+            for (var i = 0; i < interiorKnotCount; i++)
             {
-                int k = i + 1;           // глобальный индекс узла (1..n-2)
-                double hk_1 = h[k - 1];  // h_{k-1}
-                double hk = h[k];        // h_k
+                var knotIndex = i + 1;
+                var hLeft = segmentLengths[knotIndex - 1];
+                var hRight = segmentLengths[knotIndex];
 
-                A.Add(hk_1);
-                B.Add(2.0 * (hk_1 + hk));
-                C.Add(hk);
+                lowerDiag.Add(hLeft);
+                mainDiag.Add(2.0 * (hLeft + hRight));
+                upperDiag.Add(hRight);
 
-                double slopeNext = (y[k + 1] - y[k]) / hk;
-                double slopePrev = (y[k] - y[k - 1]) / hk_1;
-                D.Add(6.0 * (slopeNext - slopePrev));
+                var slopeRight = (values[knotIndex + 1] - values[knotIndex]) / hRight;
+                var slopeLeft = (values[knotIndex] - values[knotIndex - 1]) / hLeft;
+                rhs.Add(6.0 * (slopeRight - slopeLeft));
             }
 
-            var Mint = new Vector(interior);
-            SolveTridiagonal(A, B, C, D, Mint); // решаем на внутренних узлах
+            var secondDerivativesInterior = new Vector(interiorKnotCount);
+            SolveTridiagonal(lowerDiag, mainDiag, upperDiag, rhs, secondDerivativesInterior);
 
-            for (int i = 0; i < interior; i++)
+            for (var i = 0; i < interiorKnotCount; i++)
             {
-                int k = i + 1;
-                M[k] = Mint[i];
+                var knotIndex = i + 1;
+                secondDerivativesAtKnots[knotIndex] = secondDerivativesInterior[i];
             }
         }
-        // M[0] = 0, M[n-1] = 0 уже выставлены (natural)
-
-        for (int i = 0; i < m; i++)
+        
+        for (var i = 0; i < segmentCount; i++)
         {
-            double hi = h[i];
+            var h = segmentLengths[i];
+            var bi = (values[i + 1] - values[i]) / h - h * (2.0 * secondDerivativesAtKnots[i] + secondDerivativesAtKnots[i + 1]) / 6.0;
 
-            _a.Add(y[i]);
-            double bi = (y[i + 1] - y[i]) / hi - hi * (2.0 * M[i] + M[i + 1]) / 6.0;
-            _b.Add(bi);
-            _c.Add(M[i] / 2.0);
-            _d.Add((M[i + 1] - M[i]) / (6.0 * hi));
+            _constCoefficients.Add(values[i]);
+            _linearCoefficients.Add(bi);
+            _quadraticCoefficients.Add(secondDerivativesAtKnots[i] / 2.0);
+            _cubicCoefficients.Add((secondDerivativesAtKnots[i + 1] - secondDerivativesAtKnots[i]) / (6.0 * h));
         }
     }
 
-    private int FindInterval(double xv)
+    private static void SolveTridiagonal(IVector lowerDiag, IVector mainDiag, IVector upperDiag, IVector rhs, IVector solutionOut)
     {
-        // Бинарный поиск интервала [x[i], x[i+1]] для xv
-        int i = 0;
-        int j = _n - 1;
-        // Если xv == последнему узлу, вернем последний интервал
-        if (xv == _x[_n - 1]) return _n - 2;
-
-        while (i + 1 < j)
+        var size = rhs.Count;
+        if (lowerDiag.Count != size || mainDiag.Count != size || upperDiag.Count != size)
         {
-            int mid = (i + j) / 2;
-            if (xv < _x[mid]) j = mid;
-            else i = mid;
+            throw new ArgumentException("Coefficients must have same length");
         }
-        return i; // гарантированно 0..n-2
-    }
 
-    private static void SolveTridiagonal(IVector a, IVector b, IVector c, IVector d, IVector xOut)
-    {
-        int n = d.Count;
-        if (a.Count != n || b.Count != n || c.Count != n)
-            throw new ArgumentException("Размерности диагоналей некорректны.");
-        if (n == 0)
+        if (size == 0)
+        {
             return;
-
-        var cPrime = new Vector(n);
-        var dPrime = new Vector(n);
-        for (int i = 0; i < n; i++) { cPrime.Add(0.0); dPrime.Add(0.0); }
-
-        double denom = b[0];
-        if (denom == 0.0) throw new InvalidOperationException("Выражение вырождено (b[0] == 0).");
-
-        cPrime[0] = (n > 1) ? c[0] / denom : 0.0;
-        dPrime[0] = d[0] / denom;
-
-        for (int i = 1; i < n; i++)
-        {
-            denom = b[i] - a[i] * cPrime[i - 1];
-            if (denom == 0.0) throw new InvalidOperationException("Вырожденная трехдиагональная система.");
-            cPrime[i] = (i < n - 1) ? c[i] / denom : 0.0;
-            dPrime[i] = (d[i] - a[i] * dPrime[i - 1]) / denom;
         }
 
-        for (int i = 0; i < n; i++) xOut.Add(0.0);
-        xOut[n - 1] = dPrime[n - 1];
-        for (int i = n - 2; i >= 0; i--)
-            xOut[i] = dPrime[i] - cPrime[i] * xOut[i + 1];
+        var upperModified = new Vector(size);
+        var rhsModified = new Vector(size);
+        for (var i = 0; i < size; i++)
+        {
+            upperModified.Add(0.0);
+            rhsModified.Add(0.0);
+        }
+
+        var pivot = mainDiag[0];
+        if (pivot == 0.0)
+        {
+            throw new InvalidOperationException("b[0] == 0");
+        }
+
+        upperModified[0] = (size > 1) ? upperDiag[0] / pivot : 0.0;
+        rhsModified[0] = rhs[0] / pivot;
+
+        for (var i = 1; i < size; i++)
+        {
+            pivot = mainDiag[i] - lowerDiag[i] * upperModified[i - 1];
+            if (pivot == 0.0)
+            {
+                throw new InvalidOperationException("Degenerate tridiagonal system.");
+            }
+
+            upperModified[i] = (i < size - 1) ? upperDiag[i] / pivot : 0.0;
+            rhsModified[i] = (rhs[i] - lowerDiag[i] * rhsModified[i - 1]) / pivot;
+        }
+
+        for (var i = 0; i < size; i++)
+        {
+            solutionOut.Add(0.0);
+        }
+
+        solutionOut[size - 1] = rhsModified[size - 1];
+        for (var i = size - 2; i >= 0; i--)
+        {
+            solutionOut[i] = rhsModified[i] - upperModified[i] * solutionOut[i + 1];
+        }
     }
 }

@@ -3,6 +3,7 @@ namespace Optimization.Functions.Implementations;
 public class LinearFunction(IVector parameters) : IDifferentiableFunction
 {
     private readonly int _dimension = parameters.Count - 1;
+    
     public double Value(IVector point)
     {
         if (point.Count != _dimension)
@@ -10,13 +11,13 @@ public class LinearFunction(IVector parameters) : IDifferentiableFunction
             throw new ArgumentException($"Point dimension must be {_dimension}.", nameof(point));
         }
 
-        var sum = parameters[_dimension];
+        var result = parameters[_dimension];
         for (var i = 0; i < _dimension; i++)
         {
-            sum += parameters[i] * point[i];
+            result += parameters[i] * point[i];
         }
 
-        return sum;
+        return result;
     }
 
     public IVector Gradient(IVector point)

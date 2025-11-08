@@ -11,24 +11,24 @@ public class NaturalCubicSplineFactory : IParametricFunction
             throw new ArgumentException("Expected even num of parameters >= 4: x0, y0, x1, y1, ...");
         }
         
-        var n = parameters.Count / 2;
-        var x = new Vector(n);
-        var y = new Vector(n);
+        var knotCount = parameters.Count / 2;
+        var knots = new Vector(knotCount);
+        var values = new Vector(knotCount);
 
-        for (var i = 0; i < n; i++)
+        for (var i = 0; i < knotCount; i++)
         {
-            var xi = parameters[2 * i];
-            var yi = parameters[2 * i + 1];
+            var knot = parameters[2 * i];
+            var value = parameters[2 * i + 1];
             
-            x.Add(xi);
-            y.Add(yi);
+            knots.Add(knot);
+            values.Add(value);
 
-            if (i > 0 && !(x[i] > x[i - 1]))
+            if (i > 0 && !(knots[i] > knots[i - 1]))
             {
                 throw new ArgumentException("Абсциссы узлов x должны быть строго возрастающими.");
             }
         }
 
-        return new NaturalCubicSpline(x, y);
+        return new NaturalCubicSpline(knots, values);
     }
 }
