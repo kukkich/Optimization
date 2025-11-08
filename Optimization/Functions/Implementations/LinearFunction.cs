@@ -1,11 +1,10 @@
 namespace Optimization.Functions.Implementations;
 
-public class BoundLinearFunction(IVector parameters) : IDifferentiableFunction
+public class LinearFunction(IVector parameters) : IDifferentiableFunction
 {
     private readonly int _dimension = parameters.Count - 1;
     public double Value(IVector point)
     {
-        ArgumentNullException.ThrowIfNull(point);
         if (point.Count != _dimension)
         {
             throw new ArgumentException($"Point dimension must be {_dimension}.", nameof(point));
@@ -27,12 +26,12 @@ public class BoundLinearFunction(IVector parameters) : IDifferentiableFunction
             throw new ArgumentException($"Point dimension must be {_dimension}.", nameof(point));
         }
 
-        var g = new Vector(_dimension);
+        var gradient = new Vector(_dimension);
         for (var i = 0; i < _dimension; i++)
         {
-            g.Add(parameters[i]);
+            gradient.Add(parameters[i]);
         }
             
-        return g;
+        return gradient;
     }
 }

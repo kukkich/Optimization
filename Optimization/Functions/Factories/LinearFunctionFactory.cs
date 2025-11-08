@@ -2,7 +2,7 @@ using Optimization.Functions.Implementations;
 
 namespace Optimization.Functions.Factories;
 
-public sealed class LinearParametricFunction : IParametricFunction
+public sealed class LinearFunctionFactory : IParametricFunction
 {
     public IFunction Bind(IVector parameters)
     {
@@ -11,6 +11,6 @@ public sealed class LinearParametricFunction : IParametricFunction
             throw new ArgumentException($"Expected at least 2 parameters: weights + bias; got {parameters.Count}.", nameof(parameters));
         }
 
-        return new BoundLinearFunction(parameters);
+        return new LinearFunction(parameters);
     }
 }
