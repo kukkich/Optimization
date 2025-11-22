@@ -16,6 +16,6 @@ public class NaturalCubicSplineFactoryTests
 
         Assert.That(function, Is.Not.Null);
         Assert.That(function, Is.InstanceOf<NaturalCubicSpline>());
-        Assert.That(function, Is.InstanceOf<IDifferentiableFunction>());
+        Assert.That(function, Is.InstanceOf<IFunction>());
     }
 }

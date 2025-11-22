@@ -27,12 +27,13 @@ public class LinearFunction(IVector parameters) : IDifferentiableFunction
             throw new ArgumentException($"Point dimension must be {_dimension}.", nameof(point));
         }
 
-        var gradient = new Vector(_dimension);
+        var parametersGradient = new Vector(_dimension + 1);
         for (var i = 0; i < _dimension; i++)
         {
-            gradient.Add(parameters[i]);
+            parametersGradient.Add(point[i]);
         }
-            
-        return gradient;
+        
+        parametersGradient[_dimension] = 1.0;
+        return parametersGradient;
     }
 }
