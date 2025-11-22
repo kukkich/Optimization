@@ -3,7 +3,7 @@ using Optimization.Functions.Utils;
 
 namespace Optimization.Functions.Implementations;
 
-public class NaturalCubicSpline : IDifferentiableFunction
+public class NaturalCubicSpline : IFunction
 {
     private readonly IVector _knots;
     private readonly Vector _constCoefficients;
@@ -45,32 +45,6 @@ public class NaturalCubicSpline : IDifferentiableFunction
                + _linearCoefficients[intervalIndex] * localX
                + _quadraticCoefficients[intervalIndex] * localX * localX
                + _cubicCoefficients[intervalIndex] * localX * localX * localX;
-    }
-
-    public IVector Gradient(IVector point)
-    {
-        if (point.Count != 1)
-        {
-            throw new ArgumentException("Point must be one-dimensional", nameof(point));
-        }
-        
-        var xValue = point[0];
-        if (xValue < _knots[0] || xValue > _knots[_knotCount - 1])
-        {
-            throw new ArgumentOutOfRangeException(nameof(point), "Gradient is not defined out of domain of definition [x0, xN]");
-        }
-
-        var intervalIndex = SegmentIndexFinder.Find(_knots, xValue);
-        var localX = xValue - _knots[intervalIndex];
-
-        var derivative = _linearCoefficients[intervalIndex]
-                         + 2.0 * _quadraticCoefficients[intervalIndex] * localX
-                         + 3.0 * _cubicCoefficients[intervalIndex] * localX * localX;
-        
-        var gradient = new Vector(1);
-        gradient.Add(derivative);
-        return gradient;
-
     }
 
     private void BuildCoefficients(IVector knots, IVector values)
