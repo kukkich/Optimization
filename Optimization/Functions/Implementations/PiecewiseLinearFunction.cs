@@ -56,32 +56,33 @@ public class PiecewiseLinearFunction : IDifferentiableFunction
             throw new ArgumentException("Point must be one-dimensional.", nameof(point));
         }
 
-        var x = point[0];
-        var n = _knots.Count;
+        var xValue = point[0];
+        var knotsCount = _knots.Count;
 
-        if (x < _knots[0] || x > _knots[n - 1])
+        if (xValue < _knots[0] || xValue > _knots[knotsCount - 1])
+        {
             throw new ArgumentOutOfRangeException(nameof(point), "Point is out of domain [x0, xN].");
+        }
 
-        var grad = new Vector(n);
-        for (var k = 0; k < n; k++)
+        var grad = new Vector(knotsCount);
+        for (var k = 0; k < knotsCount; k++)
         {
             grad.Add(0.0);
         }
         
-        if (x.EqualsWithPrecision(_knots[n - 1]))
+        if (xValue.EqualsWithPrecision(_knots[knotsCount - 1]))
         {
-            grad[n - 1] = 1.0;
+            grad[knotsCount - 1] = 1.0;
             return grad;
         }
 
-        var i = SegmentIndexFinder.Find(_knots, x);
+        var segmentIndex = SegmentIndexFinder.Find(_knots, xValue);
 
-        var h = _knots[i + 1] - _knots[i];
-        var t = (x - _knots[i]) / h;
+        var xDelta = _knots[segmentIndex + 1] - _knots[segmentIndex];
+        var alpha = (xValue - _knots[segmentIndex]) / xDelta;
 
-        grad[i] = 1.0 - t;
-        grad[i + 1] = t;
-
+        grad[segmentIndex] = 1.0 - alpha;
+        grad[segmentIndex + 1] = alpha;
         return grad;
     }
 }
